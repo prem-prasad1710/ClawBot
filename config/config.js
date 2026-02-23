@@ -8,6 +8,8 @@ export const config = {
       .split(',')
       .map((id) => parseInt(id.trim()))
       .filter(Boolean),
+    // Optional: set to a Cloudflare Worker URL to bypass corporate firewalls
+    apiBaseUrl: process.env.TELEGRAM_API_BASE_URL || '',
   },
   ollama: {
     baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',

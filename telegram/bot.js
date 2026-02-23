@@ -7,10 +7,34 @@
 import TelegramBot from 'node-telegram-bot-api';
 import path from 'path';
 import os from 'os';
+import https from 'https';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { AgentLoop } from '../agent/loop.js';
 import { AgentMemory } from '../agent/memory.js';
 import { config } from '../config/config.js';
 import { logger } from '../utils/logger.js';
+
+/**
+ * Build an HTTPS agent that works behind Zscaler / corporate TLS-inspection proxies.
+ * NODE_EXTRA_CA_CERTS (set in .env) makes Node trust the Zscaler Root CA,
+ * so normal cert validation works without disabling security.
+ * If HTTPS_PROXY / HTTP_PROXY is set, route through that proxy instead.
+ */
+function buildRequestAgent() {
+  const proxyUrl =
+    process.env.HTTPS_PROXY ||
+    process.env.https_proxy ||
+    process.env.HTTP_PROXY  ||
+    process.env.http_proxy;
+
+  if (proxyUrl) {
+    logger.info(`[Telegram] Using proxy: ${proxyUrl}`);
+    return new HttpsProxyAgent(proxyUrl);
+  }
+
+  // NODE_EXTRA_CA_CERTS handles Zscaler trust – just keep the socket alive
+  return new https.Agent({ keepAlive: true });
+}
 
 export class ClawBotTelegram {
   constructor() {
@@ -21,19 +45,26 @@ export class ClawBotTelegram {
     this._pollingRestartDelay = 5000; // ms, doubles on each consecutive failure
     this._pollingFailures = 0;
 
-    this.bot = new TelegramBot(config.telegram.token, {
+    const botOptions = {
       polling: {
-        interval: 1000,      // ms between polls
+        interval: 1000,
         autoStart: true,
-        params: { timeout: 30 }, // long-poll timeout in seconds
+        params: { timeout: 30 },
       },
       request: {
-        agentOptions: {
-          keepAlive: true,
-          timeout: 60000,
-        },
+        agent: buildRequestAgent(),
+        timeout: 60000,
       },
-    });
+    };
+
+    // Allow routing through a proxy worker (e.g. Cloudflare Worker) to bypass
+    // corporate firewalls that block api.telegram.org directly.
+    if (config.telegram.apiBaseUrl) {
+      botOptions.baseApiUrl = config.telegram.apiBaseUrl;
+      logger.info(`[Telegram] Using custom API base URL: ${config.telegram.apiBaseUrl}`);
+    }
+
+    this.bot = new TelegramBot(config.telegram.token, botOptions);
     this.memory = new AgentMemory();
     this.activeLoops = new Map(); // chatId → AgentLoop
     this._registerHandlers();
