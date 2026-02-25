@@ -8,16 +8,23 @@ import axios from 'axios';
 import { config } from '../config/config.js';
 import { logger } from '../utils/logger.js';
 
-const PLANNER_SYSTEM = `You are a senior software architect and project planner.
-Given a development task, produce a clear numbered plan of discrete, actionable steps.
+const PLANNER_SYSTEM = `You are a senior software engineer and project planner.
+Given a development task and project context, produce a clear numbered implementation plan.
 Your output must be valid JSON only – no prose outside the JSON block.
+
+For coding tasks, include concrete steps like:
+  - Read [specific file] to understand current structure
+  - Implement [feature] in [specific file] 
+  - Install dependencies if needed (npm install X)
+  - Write tests or verify the change works
+  - Commit the changes
 
 Output format:
 {
   "goal": "One sentence describing the overall goal",
   "steps": [
-    "Step 1 description",
-    "Step 2 description",
+    "Step 1: Read src/index.js to understand the entry point",
+    "Step 2: Implement the feature in src/routes/api.js",
     ...
   ],
   "estimatedComplexity": "low|medium|high",

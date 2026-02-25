@@ -3,7 +3,7 @@
  * Safe shell command execution with output capture and dangerous command filtering.
  */
 
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { config } from '../config/config.js';
 import { logger } from '../utils/logger.js';
@@ -18,6 +18,9 @@ export class Terminal {
    * @returns {Promise<{stdout: string, stderr: string, exitCode: number}>}
    */
   async runCommand(command, workDir = '.') {
+    if (!command || !command.trim()) {
+      return { stdout: '', stderr: 'No command provided.', exitCode: 1 };
+    }
     this._assertSafe(command);
 
     logger.info(`[Terminal] $ ${command}  (cwd: ${workDir})`);
@@ -51,7 +54,6 @@ export class Terminal {
    */
   runBackground(command, workDir = '.') {
     this._assertSafe(command);
-    const { spawn } = require('child_process');
     const child = spawn(command, { shell: true, cwd: workDir, detached: true, stdio: 'ignore' });
     child.unref();
     logger.info(`[Terminal] Background process started (PID ${child.pid}): ${command}`);

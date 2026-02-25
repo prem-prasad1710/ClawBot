@@ -7,8 +7,12 @@
 import simpleGit from 'simple-git';
 import path from 'path';
 import fetch from 'node-fetch';
+import https from 'https';
 import { config } from '../config/config.js';
 import { logger } from '../utils/logger.js';
+
+// Bypass Zscaler / corporate TLS interception for GitHub API calls
+const tlsAgent = new https.Agent({ rejectUnauthorized: false });
 
 export class GitHub {
   /**
@@ -34,19 +38,36 @@ export class GitHub {
         return this.createRepo(params.name, params.private ?? true, params.description);
       case 'pr':
         return this.createPR(params);
+      case 'list_repos': {
+        // Accept username directly, or derive it from "owner/repo" in params.repo
+        const username = params.username || (params.repo && params.repo.split('/')[0]) || undefined;
+        return this.listRepos(username);
+      }
+      case 'list_repo_contents':
+        return this.listRepoContents(params.repo, params.path || '');
       default:
-        throw new Error(`Unknown GitHub operation: ${operation}`);
+        throw new Error(`Unknown GitHub operation: ${operation}. Valid ops: clone, commit, push, status, create_repo, pr, list_repos, list_repo_contents`);
     }
   }
 
   async clone(repoUrl, destDir, branch) {
+    // Accept "owner/repo" shorthand and expand to full HTTPS URL
+    if (repoUrl && !repoUrl.startsWith('http') && !repoUrl.startsWith('git@')) {
+      repoUrl = `https://github.com/${repoUrl}.git`;
+    }
     const repoName = repoUrl.split('/').pop().replace('.git', '');
     const cloneDir = path.join(destDir, repoName);
     logger.info(`[GitHub] Cloning ${repoUrl} → ${cloneDir}`);
 
+    // Inject token into HTTPS URL so private repos clone without SSH keys
+    let cloneUrl = repoUrl;
+    if (config.github.token && cloneUrl.startsWith('https://')) {
+      cloneUrl = cloneUrl.replace('https://', `https://${config.github.token}@`);
+    }
+
     const options = branch ? ['--branch', branch] : [];
-    await simpleGit().clone(repoUrl, cloneDir, options);
-    return `Cloned ${repoUrl} to ${cloneDir}`;
+    await simpleGit().clone(cloneUrl, cloneDir, options);
+    return `Cloned ${repoUrl} to ${cloneDir} — now use filesystem_read on "${cloneDir}" to explore it`;
   }
 
   async init(dir) {
@@ -94,6 +115,7 @@ export class GitHub {
         Authorization: `token ${config.github.token}`,
         'Content-Type': 'application/json',
       },
+      agent: tlsAgent,
       body: JSON.stringify({ name, private: isPrivate, description }),
     });
 
@@ -117,6 +139,7 @@ export class GitHub {
         Authorization: `token ${config.github.token}`,
         'Content-Type': 'application/json',
       },
+      agent: tlsAgent,
       body: JSON.stringify({ title, body, head, base }),
     });
 
@@ -127,5 +150,63 @@ export class GitHub {
 
     const data = await resp.json();
     return `PR created: ${data.html_url}`;
+  }
+
+  /**
+   * List all public repos for a GitHub user.
+   * If GITHUB_TOKEN is set, also returns private repos for the authenticated user.
+   * @param {string} [username] - GitHub username. Omit to list authenticated user's repos.
+   */
+  async listRepos(username) {
+    const headers = { 'Accept': 'application/vnd.github.v3+json' };
+    if (config.github.token) headers['Authorization'] = `token ${config.github.token}`;
+
+    // When a token is available use the authenticated endpoint so private repos
+    // are included (the public /users/:username/repos endpoint only returns public ones).
+    const endpoint = config.github.token
+      ? `https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator`
+      : username
+        ? `https://api.github.com/users/${username}/repos?per_page=100&sort=updated`
+        : `https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator`;
+
+    logger.info(`[GitHub] Listing repos: ${endpoint}`);
+    const resp = await fetch(endpoint, { headers, agent: tlsAgent });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(`GitHub API error ${resp.status}: ${err.message || resp.statusText}`);
+    }
+
+    const repos = await resp.json();
+    if (!repos.length) return 'No repositories found.';
+
+    const lines = repos.map((r, i) =>
+      `${i + 1}. ${r.full_name}${ r.private ? ' 🔒' : '' } – ${r.description || 'no description'} [⭐${r.stargazers_count}]`
+    );
+    return `Found ${repos.length} repositories:\n\n${lines.join('\n')}`;
+  }
+
+  /**
+   * List contents of a path inside a repository.
+   * @param {string} repo  - "owner/repo"
+   * @param {string} filePath - path inside the repo (default: root)
+   */
+  async listRepoContents(repo, filePath = '') {
+    const headers = { 'Accept': 'application/vnd.github.v3+json' };
+    if (config.github.token) headers['Authorization'] = `token ${config.github.token}`;
+
+    const url = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+    logger.info(`[GitHub] Listing contents: ${url}`);
+    const resp = await fetch(url, { headers, agent: tlsAgent });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(`GitHub API error ${resp.status}: ${err.message || resp.statusText}`);
+    }
+
+    const items = await resp.json();
+    const list = Array.isArray(items) ? items : [items];
+    const lines = list.map((f) => `${f.type === 'dir' ? '📁' : '📄'} ${f.name}`);
+    return `Contents of ${repo}/${filePath}:\n${lines.join('\n')}`;
   }
 }

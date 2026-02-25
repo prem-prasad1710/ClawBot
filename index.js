@@ -3,8 +3,8 @@
  * Starts the Telegram bot and the Ollama health check.
  */
 
-// Must be set before any network calls – fixes macOS TLS certificate issues with Node.js
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// TLS note: Zscaler interception is handled per-agent in telegram/bot.js.
+// NODE_EXTRA_CA_CERTS in .env handles Ollama/other connections.
 
 import 'dotenv/config';
 import chalk from 'chalk';

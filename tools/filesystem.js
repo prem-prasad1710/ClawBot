@@ -51,6 +51,16 @@ export class FileSystem {
   }
 
   /**
+   * Create a directory (and any parents).
+   */
+  async mkdir(dirPath) {
+    const abs = path.resolve(dirPath);
+    await fsExtra.ensureDir(abs);
+    logger.info(`[FS] Created directory: ${abs}`);
+    return `Directory created: ${abs}`;
+  }
+
+  /**
    * Write content to a file, creating directories as needed.
    */
   async write(filePath, content) {

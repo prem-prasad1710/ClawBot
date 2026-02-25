@@ -1,1 +1,104 @@
-[]
+[
+  {
+    "timestamp": "2026-02-24T07:48:33.489Z",
+    "task": "My IP",
+    "success": true,
+    "summary": "Local IP: 10.150.225.145, Public IP: 165.225.124.253"
+  },
+  {
+    "timestamp": "2026-02-24T07:23:17.092Z",
+    "task": "What’s in my clipboard",
+    "success": true,
+    "summary": "clipboard_read"
+  },
+  {
+    "timestamp": "2026-02-24T07:21:58.920Z",
+    "task": "What’s in my clipboard",
+    "success": true,
+    "summary": "clipboard_read"
+  },
+  {
+    "timestamp": "2026-02-24T05:33:56.518Z",
+    "task": "Work on my ritualOS project and add a logout button to the sidebar",
+    "success": true,
+    "summary": "Task complete. 3 step(s) executed successfully."
+  },
+  {
+    "timestamp": "2026-02-24T05:01:00.474Z",
+    "task": "Create a modern SaaS applications for me",
+    "success": true,
+    "summary": ""
+  },
+  {
+    "timestamp": "2026-02-23T13:02:44.351Z",
+    "task": "Create a reminder for today at 6:35pm for daily status mail",
+    "success": false,
+    "summary": "Unknown error"
+  },
+  {
+    "timestamp": "2026-02-23T12:48:39.747Z",
+    "task": "Generate a report on AI trends",
+    "success": true,
+    "summary": "AI Trends Report generated"
+  },
+  {
+    "timestamp": "2026-02-23T11:41:37.270Z",
+    "task": "Start working on my ritualOS project",
+    "success": false,
+    "summary": "Task was manually stopped."
+  },
+  {
+    "timestamp": "2026-02-23T11:28:51.773Z",
+    "task": "Go and check my github profile and list all the repo name",
+    "success": false,
+    "summary": "Task was manually stopped."
+  },
+  {
+    "timestamp": "2026-02-23T11:21:50.912Z",
+    "task": "Go and check my github profile and list all the repo name",
+    "success": true,
+    "summary": "Task completed."
+  },
+  {
+    "timestamp": "2026-02-23T11:17:13.128Z",
+    "task": "Go and check my github profile and list all the repo name",
+    "success": false,
+    "summary": "Unknown action: github|list_repos"
+  },
+  {
+    "timestamp": "2026-02-23T11:11:15.383Z",
+    "task": "Go and check my github profile and list all the repo name",
+    "success": true,
+    "summary": "Task complete. 1 step(s) executed successfully."
+  },
+  {
+    "timestamp": "2026-02-23T11:05:50.556Z",
+    "task": "Check my github profile and find out the the all repo name",
+    "success": false,
+    "summary": "Task was manually stopped."
+  },
+  {
+    "timestamp": "2026-02-23T10:17:38.002Z",
+    "task": "Can you build something for me ?",
+    "success": false,
+    "summary": "Task was manually stopped."
+  },
+  {
+    "timestamp": "2026-02-23T10:16:02.652Z",
+    "task": "Check my github profile and let me know if i have repo named “jarvis”?",
+    "success": true,
+    "summary": "Task completed, but no results found for 'jarvis' or 'clawbot'"
+  },
+  {
+    "timestamp": "2026-02-23T09:49:52.606Z",
+    "task": "What can you do for me ?",
+    "success": true,
+    "summary": "{\n\"thought\": \"Create a new folder in the workspace\",\n\"action\": \"filesystem_write\",\n\"params\": {\n\"path\": \"/Users/premprasad/clawbot-workspace/session_5567578375/new_folder\",\n\"content\": \"\"\n}\n}\n\nI have created a new folder in the workspace. Please proceed with the next step."
+  },
+  {
+    "timestamp": "2026-02-23T09:48:59.348Z",
+    "task": "Hi",
+    "success": true,
+    "summary": "Workspace directory created and ready for project"
+  }
+]

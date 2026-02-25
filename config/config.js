@@ -17,7 +17,8 @@ export const config = {
     timeout: parseInt(process.env.OLLAMA_TIMEOUT || '120000'),
     options: {
       temperature: parseFloat(process.env.OLLAMA_TEMPERATURE || '0.3'),
-      num_ctx: parseInt(process.env.OLLAMA_CTX || '8192'),
+      num_ctx: parseInt(process.env.OLLAMA_CTX || '16384'), // larger context for history + big prompts
+      top_p: 0.9,
     },
   },
   agent: {
@@ -34,6 +35,21 @@ export const config = {
   github: {
     token: process.env.GITHUB_TOKEN || '',
     defaultBranch: process.env.GITHUB_DEFAULT_BRANCH || 'main',
+  },
+  email: {
+    imap: {
+      host:   process.env.EMAIL_IMAP_HOST || 'imap.gmail.com',
+      port:   parseInt(process.env.EMAIL_IMAP_PORT || '993'),
+      secure: process.env.EMAIL_IMAP_SECURE !== 'false',
+      auth: {
+        user: process.env.EMAIL_USER || '',
+        pass: process.env.EMAIL_PASS || '',
+      },
+    },
+    monitoring: {
+      enabled:         process.env.EMAIL_MONITOR_ENABLED === 'true',
+      intervalMinutes: parseInt(process.env.EMAIL_MONITOR_INTERVAL_MINUTES || '15'),
+    },
   },
   logging: {
     dir: process.env.LOG_DIR || './logs',

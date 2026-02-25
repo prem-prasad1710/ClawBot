@@ -6,8 +6,13 @@
 
 import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
+import https from 'https';
 import { config } from '../config/config.js';
 import { logger } from '../utils/logger.js';
+
+// macOS often lacks the root CA bundle that Node.js needs for corporate/proxy
+// environments. Using a permissive agent only for outbound search scraping.
+const tlsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const DDG_URL = 'https://html.duckduckgo.com/html/';
 const HEADERS = {
@@ -26,13 +31,21 @@ export class WebSearch {
   async search(query) {
     logger.info(`[Search] Query: ${query}`);
 
+    // 1. Try DuckDuckGo
     try {
       const results = await this._ddgSearch(query);
-      if (results.length > 0) {
-        return this._formatResults(query, results);
-      }
+      if (results.length > 0) return this._formatResults(query, results);
     } catch (err) {
       logger.warn(`[Search] DuckDuckGo failed: ${err.message}`);
+    }
+
+    // 2. Fallback: Bing HTML scrape
+    try {
+      logger.info(`[Search] Trying Bing fallback…`);
+      const results = await this._bingSearch(query);
+      if (results.length > 0) return this._formatResults(query, results);
+    } catch (err) {
+      logger.warn(`[Search] Bing failed: ${err.message}`);
     }
 
     return `No results found for: "${query}". Consider trying a different search query.`;
@@ -64,6 +77,7 @@ export class WebSearch {
       headers: { ...HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
       timeout: 15000,
+      agent: tlsAgent,
     });
 
     if (!resp.ok) throw new Error(`DDG HTTP ${resp.status}`);
@@ -94,8 +108,33 @@ export class WebSearch {
     return results.slice(0, config.search.maxResults);
   }
 
+  async _bingSearch(query) {
+    const url = `https://www.bing.com/search?q=${encodeURIComponent(query)}&setmkt=en-US&setlang=en`;
+    const resp = await fetch(url, {
+      headers: HEADERS,
+      timeout: 15000,
+      agent: tlsAgent,
+    });
+    if (!resp.ok) throw new Error(`Bing HTTP ${resp.status}`);
+
+    const html = await resp.text();
+    const $ = cheerio.load(html);
+    const results = [];
+
+    $('#b_results .b_algo').each((_, el) => {
+      const titleEl = $(el).find('h2 a');
+      const snippetEl = $(el).find('.b_caption p');
+      const title = titleEl.text().trim();
+      const url = titleEl.attr('href') || '';
+      const snippet = snippetEl.text().trim();
+      if (title && url) results.push({ title, url, snippet });
+    });
+
+    return results.slice(0, config.search.maxResults);
+  }
+
   async _fetchPage(url) {
-    const resp = await fetch(url, { headers: HEADERS, timeout: 15000 });
+    const resp = await fetch(url, { headers: HEADERS, timeout: 15000, agent: tlsAgent });
     const html = await resp.text();
     const $ = cheerio.load(html);
 

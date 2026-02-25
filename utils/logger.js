@@ -8,12 +8,24 @@ import path from 'path';
 import { config } from '../config/config.js';
 
 const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
-const COLORS = {
-  debug: '\x1b[36m',
-  info:  '\x1b[32m',
-  warn:  '\x1b[33m',
-  error: '\x1b[31m',
-  reset: '\x1b[0m',
+
+// Foreground colors
+const C = {
+  debug:  '\x1b[36m',   // cyan
+  info:   '\x1b[32m',   // green
+  warn:   '\x1b[33m',   // yellow
+  error:  '\x1b[31m',   // red
+  time:   '\x1b[90m',   // grey
+  bold:   '\x1b[1m',
+  reset:  '\x1b[0m',
+};
+
+// Visual badges per level
+const BADGE = {
+  debug: `${C.debug}◆ DEBUG${C.reset}`,
+  info:  `${C.info}${C.bold}● INFO ${C.reset}`,
+  warn:  `${C.warn}${C.bold}▲ WARN ${C.reset}`,
+  error: `${C.error}${C.bold}✖ ERROR${C.reset}`,
 };
 
 class Logger {
@@ -28,13 +40,20 @@ class Logger {
   warn(msg)  { this._log('warn',  msg); }
   error(msg) { this._log('error', msg); }
 
+  // Visually prominent separator for major lifecycle events
+  section(title) {
+    const line = '─'.repeat(60);
+    console.log(`\n${C.bold}${line}${C.reset}`);
+    console.log(`${C.bold}  ${title}${C.reset}`);
+    console.log(`${C.bold}${line}${C.reset}\n`);
+  }
+
   _log(level, msg) {
     if (LEVELS[level] < this._level) return;
 
-    const ts = new Date().toISOString();
-    const coloredLevel = `${COLORS[level]}[${level.toUpperCase()}]${COLORS.reset}`;
-    const plain = `[${ts}] [${level.toUpperCase()}] ${msg}`;
-    const colored = `${COLORS[level]}[${ts}]${COLORS.reset} ${coloredLevel} ${msg}`;
+    const ts   = new Date().toTimeString().slice(0, 8); // HH:MM:SS only – less noise
+    const plain = `[${new Date().toISOString()}] [${level.toUpperCase()}] ${msg}`;
+    const colored = `${C.time}${ts}${C.reset}  ${BADGE[level]}  ${msg}`;
 
     console.log(colored);
     this._appendToFile(plain);
