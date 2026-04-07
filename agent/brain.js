@@ -593,9 +593,17 @@ export class Brain {
 
   async quickReply(userMessage, tools = {}) {
     const userName = this._userProfile?.name || 'Boss';
+    const replyStyle = this._userProfile?.preferences?.replyStyle || 'jarvis';
+    const styleGuide = {
+      jarvis: 'Sound premium and tactical, like a sharp executive copilot.',
+      mentor: 'Sound encouraging and coach-like with practical next steps.',
+      pirate: 'Use light pirate flavor occasionally ("matey", "aye"), but stay useful and readable.',
+      minimalist: 'Be extra concise: one tight sentence whenever possible.',
+    };
+    const styleInstruction = styleGuide[replyStyle] || styleGuide.jarvis;
 
     // ── Ultra-lean system prompt — intentionally tiny to minimise token load ──
-    const chatSysPrompt = `You are ClawBot, a helpful and witty AI assistant running on ${userName}'s Mac. Reply naturally in plain English — be concise, warm, direct. Respond with ONLY your reply — never simulate or generate what the user might say next. No JSON, no markdown headers. 1-3 sentences unless more depth is truly needed.`;
+    const chatSysPrompt = `You are ClawBot, a helpful and witty AI assistant running on ${userName}'s Mac. Reply naturally in plain English — be concise, warm, direct. Style mode: ${replyStyle}. ${styleInstruction} Respond with ONLY your reply — never simulate or generate what the user might say next. No JSON, no markdown headers. 1-3 sentences unless more depth is truly needed.`;
 
     // Include only the last 2 turns of history to keep context tiny
     const messages = [{ role: 'system', content: chatSysPrompt }];

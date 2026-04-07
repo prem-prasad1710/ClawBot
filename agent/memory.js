@@ -161,6 +161,45 @@ export class AgentMemory {
     return { total, success, failed: total - success };
   }
 
+  /**
+   * Gamified progress card for a user.
+   * XP formula intentionally simple and transparent.
+   */
+  getUserLevel(userId) {
+    const profile = this.getUserProfile(userId) || {};
+    const tasksCompleted = profile.tasksCompleted || 0;
+    const messages = profile.messageCount || 0;
+    const habitsDone = profile.habitsChecked || 0;
+
+    const xp = (tasksCompleted * 25) + (messages * 2) + (habitsDone * 8);
+    const level = Math.max(1, Math.floor(xp / 120) + 1);
+    const currentLevelFloor = (level - 1) * 120;
+    const nextLevelAt = level * 120;
+    const progressInLevel = xp - currentLevelFloor;
+    const neededForNext = nextLevelAt - xp;
+
+    const titles = [
+      'New Recruit',
+      'Prompt Pilot',
+      'Workflow Tactician',
+      'Automation Ninja',
+      'Systems Architect',
+      'Legendary Operator',
+    ];
+    const title = titles[Math.min(level - 1, titles.length - 1)];
+
+    return {
+      xp,
+      level,
+      title,
+      progressInLevel,
+      neededForNext,
+      tasksCompleted,
+      messages,
+      habitsDone,
+    };
+  }
+
   // ── Private ──────────────────────────────────────
 
   _ensureFiles() {
