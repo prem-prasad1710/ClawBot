@@ -40,6 +40,9 @@ import { ImageLook } from '../tools/imagelook.js';
 import { FileWatcher } from '../tools/filewatcher.js';
 import { Automation } from '../tools/automation.js';
 import { DevTools } from '../tools/devtools.js';
+import { RepoGuardian } from '../tools/repoguardian.js';
+import { GoalShipping } from '../tools/goalshipping.js';
+import { AutonomousQA } from '../tools/autonomousqa.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/config.js';
 
@@ -81,6 +84,9 @@ export class AgentLoop {
     this.fileWatcher = new FileWatcher();
     this.automation = new Automation();
     this.devtools   = new DevTools();
+    this.repoGuardian = new RepoGuardian();
+    this.goalShipping = new GoalShipping();
+    this.autonomousQA = new AutonomousQA();
 
     /** Callback so the Telegram bot can stream status messages */
     this.onStatusUpdate = onStatusUpdate || (() => {});
@@ -286,6 +292,7 @@ export class AgentLoop {
         'weather','crypto','price','stock','worldclock','timezone',
         'speak','tts','qrcode','qr','devtools','dev','automation','system',
         'disk','files','pomodoro','pomo','focus','habit','habits',
+        'repoguardian','guardian','goalshipping','shipping','autonomous_qa','qa','qalab',
       ]);
       if (
         !this.repoDir &&
@@ -632,6 +639,8 @@ export class AgentLoop {
       'my project', 'my repo', 'my codebase', 'my app', 'my api', 'my code',
       'my backend', 'my frontend', 'my website', 'my bot', 'my service',
       'launch', 'start', 'compile', 'lint', 'test', 'npm ', 'pip ', 'yarn ',
+      'repo guardian', 'guard my repo', 'shipping plan', 'goal to shipping',
+      'autonomous qa', 'reproduce bug',
     ];
     return DEV_KEYWORDS.some(kw => lower.includes(kw));
   }
@@ -655,6 +664,7 @@ export class AgentLoop {
       // natural-language triggers for new tools
       'ip','playing','music','song','track','volume','wifi','clipboard',
       'system','cpu','ram','memory','disk','battery','processes',
+      'guardian','shipping','milestone','backlog','qa','bug','reproduce',
     ];
     const lower = t.toLowerCase();
     return !ACTION_WORDS.some((w) => lower.includes(w));
@@ -696,6 +706,8 @@ export class AgentLoop {
       'my project', 'my repo', 'my codebase', 'my app', 'my api',
       'add feature', 'add a feature', 'add functionality', 'integrate',
       'help me build', 'help me fix', 'help me with',
+      'repo guardian', 'guard my repo', 'shipping plan', 'goal to shipping',
+      'autonomous qa', 'reproduce bug',
     ];
     if (devKeywords.some((kw) => lower.includes(kw))) return false;
     return infoPatterns.some((p) => p.test(task));
@@ -1200,6 +1212,31 @@ export class AgentLoop {
         if (op === 'lorem'   || op === 'lorem_ipsum')   return this.devtools.lorem(params);
         if (op === 'case'    || op === 'convert_case')  return this.devtools.convertCase(params);
         return this.devtools.uuid(params);
+      }
+
+      // ── Repo Guardian ───────────────────────────────────────
+      case 'repoguardian':
+      case 'guardian': {
+        const op = params.operation || params.action || 'scan';
+        await this.status(`🛡️ Repo Guardian: ${op}…`);
+        return await this.repoGuardian.execute(params);
+      }
+
+      // ── Goal → Shipping ─────────────────────────────────────
+      case 'goalshipping':
+      case 'shipping': {
+        const op = params.operation || params.action || 'plan';
+        await this.status(`🚢 Goal→Shipping: ${op}…`);
+        return await this.goalShipping.execute(params);
+      }
+
+      // ── Autonomous QA ───────────────────────────────────────
+      case 'autonomous_qa':
+      case 'qa':
+      case 'qalab': {
+        const op = params.operation || params.action || 'analyze';
+        await this.status(`🧪 Autonomous QA: ${op}…`);
+        return await this.autonomousQA.execute(params);
       }
 
       case 'done':

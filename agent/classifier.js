@@ -33,6 +33,7 @@ const RULES = [
     /\b(my|the)\s+(project|repo|codebase|code|app|application|website|api|backend|frontend|service)\b/i,
     /\b(add\s+(a\s+)?(feature|functionality|endpoint|page|component|route|test)|implement|integrate|connect|wire\s+up)\b/i,
     /\b(go\s+(and|check|look)|take\s+a\s+look|have\s+a\s+look|look\s+at)\b/i,
+    /\b(repo\s+guardian|guard\s+my\s+repo|shipping\s+plan|goal\s*(to|->)\s*shipping|autonomous\s+qa|reproduce\s+bug)\b/i,
     // Reminder / notification tasks — always actionable
     /\b(set|create|add|make|schedule|put)\s+(a\s+)?(reminder|alert|alarm|notification|notify|ping)\b/i,
     /\b(remind\s+me|alert\s+me|notify\s+me|ping\s+me)\b/i,
@@ -142,6 +143,7 @@ export class IntentClassifier {
       // natural-language triggers for new tools
       'ip','playing','music','song','track','volume','wifi','disk','cpu',
       'ram','memory','battery','processes','system','clipboard',
+      'guardian','shipping','milestone','backlog','qa','bug','reproduce',
     ];
     const lower = text.toLowerCase();
     return !ACTION_WORDS.some((w) => lower.includes(w));

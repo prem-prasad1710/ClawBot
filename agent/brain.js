@@ -36,7 +36,7 @@ You MUST respond with ONLY a single JSON block inside triple backtick json fence
 \`\`\`json
 {
   "thought": "one sentence reasoning — what you're doing and why",
-  "action": "terminal|filesystem_read|filesystem_write|filesystem_mkdir|filesystem_delete|browser|search|github|calculate|run_code|reminder|notify|email_check|email_send|email_search|calendar|briefing|report|brainstorm|clipboard_read|clipboard_write|sysinfo|notes|screenshot|spotify|pdf_read|translate|contacts|network|compress|weather|pomodoro|habit|habits|crypto|price|stock|worldclock|timezone|speak|tts|qrcode|qr|image|ocr|disk|files|automation|system|devtools|dev|chat|done|error",
+  "action": "terminal|filesystem_read|filesystem_write|filesystem_mkdir|filesystem_delete|browser|search|github|calculate|run_code|reminder|notify|email_check|email_send|email_search|calendar|briefing|report|brainstorm|clipboard_read|clipboard_write|sysinfo|notes|screenshot|spotify|pdf_read|translate|contacts|network|compress|weather|pomodoro|habit|habits|crypto|price|stock|worldclock|timezone|speak|tts|qrcode|qr|image|ocr|disk|files|automation|system|devtools|dev|repoguardian|guardian|goalshipping|shipping|autonomous_qa|qa|qalab|chat|done|error",
   "params": {}
 }
 \`\`\`
@@ -294,6 +294,18 @@ devtools:            { "operation": "uuid|base64|hash|jwt|json|password|regex|cr
                      ← case: convert string between camelCase/snake_case/etc.
                      ← use for: "generate UUID", "decode base64", "hash this", "explain cron 0 9 * * 1-5"
 
+repoguardian:        { "operation": "scan|watch|status|stop|plan", "path": "/abs/repo/path", "id": "watch_id" }
+                     ← repo health watchdog: test/lint/build checks, dependency risk, flaky-file hotspots, fix plan
+                     ← use for: "guard this repo", "scan repo health", "watch for outages"
+
+goalshipping:        { "operation": "plan|status|update|daily", "goal": "ship goal", "id": "ship_id", "task": "task keyword", "done": true }
+                     ← converts high-level business goals into milestones, backlog, PR sequence, release checklist
+                     ← use for: "turn this goal into ship plan", "track shipping progress"
+
+autonomous_qa:       { "operation": "analyze|run_checks|status", "report": "bug report text", "path": "/abs/repo/path", "id": "qa_id" }
+                     ← autonomous QA bug lab: reproduction plan, root-cause hypotheses, patch strategy, quality checks
+                     ← use for: "reproduce bug", "qa this failure", "run qa checks"
+
 chat:                { "reply": "natural language answer" }
                      ← conversational replies, explanations, greetings, facts you know
 
@@ -382,6 +394,10 @@ DECISION GUIDE
 • "Test regex X on Y"                               → devtools (regex)
 • "Explain cron X" / "cron expression"              → devtools (cron)
 • "What is HTTP 404" / "HTTP status code"           → devtools (http_status)
+• "Watch my repo health" / "guard this repo"        → repoguardian (scan/watch)
+• "Turn this goal into shipping plan"               → goalshipping (plan)
+• "Track progress for shipping goal"                → goalshipping (status/update/daily)
+• "Reproduce this bug" / "run QA checks"            → autonomous_qa (analyze/run_checks)
 • Task is complete                                  → done (with a detailed summary of what was changed)
 
 ═══════════════════════════════
