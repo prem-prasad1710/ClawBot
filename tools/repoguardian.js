@@ -15,6 +15,10 @@ import { logger } from '../utils/logger.js';
 
 const execAsync = promisify(exec);
 const STATE_FILE = new URL('../memory/repo-guardian.json', import.meta.url).pathname;
+const MIN_WATCH_INTERVAL_MINUTES = 5;
+const CHECK_TIMEOUT_MS = 120000;
+const CHECK_MAX_BUFFER_BYTES = 1024 * 1024 * 4;
+const GIT_LOG_COMMIT_LIMIT = 120;
 
 function nowIso() {
   return new Date().toISOString();
@@ -66,7 +70,7 @@ export class RepoGuardian {
 
   startWatch(params = {}) {
     const repoPath = path.resolve(params.path || params.repoPath || process.cwd());
-    const intervalMinutes = Math.max(5, parseInt(params.intervalMinutes || params.interval || 30, 10));
+    const intervalMinutes = Math.max(MIN_WATCH_INTERVAL_MINUTES, parseInt(params.intervalMinutes || params.interval || 30, 10));
     const state = this._readState();
     const id = `watch_${Date.now()}`;
     state.watches = state.watches || [];
@@ -154,8 +158,8 @@ export class RepoGuardian {
       try {
         const { stdout, stderr } = await execAsync(c.command, {
           cwd: repoPath,
-          timeout: 120000,
-          maxBuffer: 1024 * 1024 * 4,
+          timeout: CHECK_TIMEOUT_MS,
+          maxBuffer: CHECK_MAX_BUFFER_BYTES,
         });
         results.push({
           name: c.key,
@@ -180,7 +184,7 @@ export class RepoGuardian {
     try {
       const { stdout } = await execAsync('npm audit --json', {
         cwd: repoPath,
-        timeout: 120000,
+        timeout: CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 1024 * 8,
       });
       const j = JSON.parse(stdout || '{}');
@@ -216,7 +220,7 @@ export class RepoGuardian {
     const gitPath = path.join(repoPath, '.git');
     if (!fs.existsSync(gitPath)) return { supported: false, top: [], note: 'Not a git repo' };
     try {
-      const { stdout } = await execAsync('git --no-pager log --name-only --pretty=format: -n 120', {
+      const { stdout } = await execAsync(`git --no-pager log --name-only --pretty=format: -n ${GIT_LOG_COMMIT_LIMIT}`, {
         cwd: repoPath,
         timeout: 30000,
         maxBuffer: 1024 * 1024 * 4,

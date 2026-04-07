@@ -13,6 +13,8 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 const STATE_FILE = new URL('../memory/autonomous-qa.json', import.meta.url).pathname;
+const CHECK_TIMEOUT_MS = 120000;
+const CHECK_MAX_BUFFER_BYTES = 1024 * 1024 * 4;
 
 function iso() {
   return new Date().toISOString();
@@ -89,8 +91,8 @@ export class AutonomousQA {
         try {
           const { stdout, stderr } = await execAsync(cmd, {
             cwd: repoPath,
-            timeout: 120000,
-            maxBuffer: 1024 * 1024 * 4,
+            timeout: CHECK_TIMEOUT_MS,
+            maxBuffer: CHECK_MAX_BUFFER_BYTES,
           });
           checks.push({ name, status: 'pass', note: (stdout || stderr || 'ok').trim().slice(0, 600) });
         } catch (err) {

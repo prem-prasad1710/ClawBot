@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 
 const STATE_FILE = new URL('../memory/goal-shipping.json', import.meta.url).pathname;
+const MAX_FEATURE_NAME_LENGTH = 40;
 
 function iso() {
   return new Date().toISOString();
@@ -146,7 +147,7 @@ export class GoalShipping {
 
     const plusSplit = goal.split('+').map((x) => titleCase(x)).filter(Boolean);
     for (const p of plusSplit) {
-      if (!hints.includes(p) && p.length <= 40) hints.push(p);
+      if (!hints.includes(p) && p.length <= MAX_FEATURE_NAME_LENGTH) hints.push(p);
     }
     if (!hints.length) hints.push(titleCase(goal).slice(0, 60));
     return hints.slice(0, 8);
