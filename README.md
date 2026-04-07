@@ -103,7 +103,7 @@ npm run cf:upload
 npm run cf:deploy
 ```
 
-The Worker config lives in `/home/runner/work/ClawBot/ClawBot/wrangler.jsonc` and entry point is `/home/runner/work/ClawBot/ClawBot/cloudflare/worker.js`.
+The Worker config lives in `wrangler.jsonc` and entry point is `cloudflare/worker.js`.
 
 ---
 
