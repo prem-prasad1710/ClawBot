@@ -191,6 +191,8 @@ export class ClawBotTelegram {
     bot.onText(/\/remind(?:er)?(.*)/, (msg, match) => this._handleRemind(msg, (match[1] || '').trim()));
     bot.onText(/\/me/, (msg) => this._handleMe(msg));
     bot.onText(/\/memory/, (msg) => this._handleMemoryView(msg));
+    bot.onText(/\/mode(?:\s+(.*))?/, (msg, match) => this._handleMode(msg, (match[1] || '').trim()));
+    bot.onText(/\/level/, (msg) => this._handleLevel(msg));
     bot.onText(/\/today/, (msg) => this._handleToday(msg));
     bot.onText(/\/calendar(?:\s+(.*))?/, (msg, match) => this._handleCalendar(msg, (match[1] || '').trim()));
     bot.onText(/\/event(?:\s+(.*))?/, (msg, match) => this._handleAddEvent(msg, (match[1] || '').trim()));
@@ -355,6 +357,8 @@ export class ClawBotTelegram {
       `\`/report <topic>\` – Generate a report`,
       `\`/me\` – View your profile`,
       `\`/memory\` – View context`,
+      `\`/mode [jarvis|mentor|pirate|minimalist]\` – Set your reply vibe`,
+      `\`/level\` – Show your XP + ClawBot rank`,
       `\`/task <text>\` – Run agent task`,
       `\`/stop\` – Stop running task`,
       `\`/status\` – Agent status`,
@@ -421,6 +425,12 @@ export class ClawBotTelegram {
       `• \`Generate QR for https://example.com\``,
       `• \`What are the largest files on my Desktop?\``,
       `• \`Open Xcode\``,
+      ``,
+      `*🎭 Personality Modes:*`,
+      `\`/mode jarvis\` – premium tactical assistant`,
+      `\`/mode mentor\` – coach-like explanations`,
+      `\`/mode pirate\` – fun pirate flavor`,
+      `\`/mode minimalist\` – ultra concise`,
     ].join('\n');
     await this._send(chatId, help);
   }
@@ -1315,6 +1325,80 @@ export class ClawBotTelegram {
     await this._send(chatId, lines.join('\n'));
   }
 
+  async _handleMode(msg, modeArg) {
+    const chatId = this._chatId(msg);
+    if (!this._isAuthorized(msg)) return;
+    const userId = msg.from?.id;
+    if (!userId) {
+      await this._send(chatId, '❌ No user ID found.');
+      return;
+    }
+
+    const supported = ['jarvis', 'mentor', 'pirate', 'minimalist'];
+    if (!modeArg) {
+      const profile = (await this.memory.getUserProfile(userId)) || {};
+      const current = profile.preferences?.replyStyle || 'jarvis';
+      await this._send(chatId, [
+        `🎭 *Current mode:* \`${current}\``,
+        '',
+        `Usage: \`/mode <${supported.join('|')}>\``,
+        `Example: \`/mode mentor\``,
+      ].join('\n'));
+      return;
+    }
+
+    const mode = modeArg.toLowerCase();
+    if (!supported.includes(mode)) {
+      await this._send(chatId, `❌ Unknown mode: \`${modeArg}\`\nTry one of: ${supported.join(', ')}`);
+      return;
+    }
+
+    await this.memory.updateUserProfile(userId, {
+      preferences: { replyStyle: mode },
+    });
+
+    const descriptions = {
+      jarvis: 'premium, tactical, confident',
+      mentor: 'supportive, teach-first, practical',
+      pirate: 'playful pirate flair with useful answers',
+      minimalist: 'short, direct, low-noise replies',
+    };
+    await this._send(chatId, `✅ Mode updated to *${mode}* — ${descriptions[mode]}.`);
+  }
+
+  async _handleLevel(msg) {
+    const chatId = this._chatId(msg);
+    if (!this._isAuthorized(msg)) return;
+    const userId = msg.from?.id;
+    if (!userId) {
+      await this._send(chatId, '❌ No user ID found.');
+      return;
+    }
+
+    const profile = (await this.memory.getUserProfile(userId)) || {};
+    const lvl = this.memory.getUserLevel(userId);
+    const barLength = 10;
+    const ratio = Math.max(0, Math.min(1, lvl.progressInLevel / 120));
+    const filled = Math.round(barLength * ratio);
+    const bar = '█'.repeat(filled) + '░'.repeat(barLength - filled);
+
+    const lines = [
+      `*🏆 ClawBot Rank Card*`,
+      ``,
+      `Pilot: *${profile.name || 'Unknown'}*`,
+      `Rank: *Lv ${lvl.level} — ${lvl.title}*`,
+      `XP: *${lvl.xp}*`,
+      `Progress: \`${bar}\` (${lvl.progressInLevel}/120)`,
+      `Next level in: *${lvl.neededForNext} XP*`,
+      ``,
+      `Sources:`,
+      `• Tasks completed: ${lvl.tasksCompleted} × 25 XP`,
+      `• Messages: ${lvl.messages} × 2 XP`,
+      `• Habit check-ins: ${lvl.habitsDone} × 8 XP`,
+    ];
+    await this._send(chatId, lines.join('\n'));
+  }
+
   async _handleMemoryView(msg) {
     const chatId = this._chatId(msg);
     if (!this._isAuthorized(msg)) return;
@@ -1486,6 +1570,12 @@ export class ClawBotTelegram {
       } else if (sub === 'done') {
         const name = args.slice(1).join(' ');
         result = await this.habitsTool.done({ name });
+        const userId = msg.from?.id;
+        if (userId) {
+          const profile = (await this.memory.getUserProfile(userId)) || {};
+          const habitsChecked = profile.habitsChecked || 0;
+          await this.memory.updateUserProfile(userId, { habitsChecked: habitsChecked + 1 });
+        }
       } else if (sub === 'stats') {
         const name = args.slice(1).join(' ');
         result = await this.habitsTool.stats({ name });
