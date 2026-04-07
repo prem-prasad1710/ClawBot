@@ -16,7 +16,7 @@ const STATE_FILE = new URL('../memory/autonomous-qa.json', import.meta.url).path
 const CHECK_TIMEOUT_MS = 120000;
 const CHECK_MAX_BUFFER_BYTES = 1024 * 1024 * 4;
 
-function iso() {
+function getIsoTimestamp() {
   return new Date().toISOString();
 }
 
@@ -54,7 +54,7 @@ export class AutonomousQA {
 
     const session = {
       id,
-      createdAt: iso(),
+      createdAt: getIsoTimestamp(),
       report,
       hypotheses,
       repro,
@@ -118,7 +118,7 @@ export class AutonomousQA {
     const latest = (state.sessions || [])[0];
     if (latest) {
       latest.checks = checks;
-      latest.checkedAt = iso();
+      latest.checkedAt = getIsoTimestamp();
       this._writeState(state);
     }
     return summary;

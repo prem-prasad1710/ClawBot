@@ -11,7 +11,7 @@ import path from 'path';
 const STATE_FILE = new URL('../memory/goal-shipping.json', import.meta.url).pathname;
 const MAX_FEATURE_NAME_LENGTH = 40;
 
-function iso() {
+function getIsoTimestamp() {
   return new Date().toISOString();
 }
 
@@ -51,8 +51,8 @@ export class GoalShipping {
     const plan = {
       id,
       goal,
-      createdAt: iso(),
-      updatedAt: iso(),
+      createdAt: getIsoTimestamp(),
+      updatedAt: getIsoTimestamp(),
       milestones,
       backlog,
       prs,
@@ -109,7 +109,7 @@ export class GoalShipping {
     });
 
     if (!updated) return `⚠️ No backlog item matched "${taskText}".`;
-    p.updatedAt = iso();
+    p.updatedAt = getIsoTimestamp();
     state.plans[id] = p;
     this._writeState(state);
     return this._formatPlan(p);
@@ -129,7 +129,7 @@ export class GoalShipping {
     });
     return [
       `📈 *Daily Goal→Shipping report*`,
-      `Generated: ${new Date().toLocaleString()}`,
+      `Generated: ${getIsoTimestamp()}`,
       ``,
       ...lines,
     ].join('\n');

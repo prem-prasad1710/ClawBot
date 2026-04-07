@@ -20,7 +20,7 @@ const CHECK_TIMEOUT_MS = 120000;
 const CHECK_MAX_BUFFER_BYTES = 1024 * 1024 * 4;
 const GIT_LOG_COMMIT_LIMIT = 120;
 
-function nowIso() {
+function getIsoTimestamp() {
   return new Date().toISOString();
 }
 
@@ -52,7 +52,7 @@ export class RepoGuardian {
 
     const scan = {
       id: `scan_${Date.now()}`,
-      timestamp: nowIso(),
+      timestamp: getIsoTimestamp(),
       repoPath,
       riskScore,
       checks,
@@ -79,7 +79,7 @@ export class RepoGuardian {
       repoPath,
       intervalMinutes,
       status: 'active',
-      createdAt: nowIso(),
+      createdAt: getIsoTimestamp(),
       lastScanAt: null,
     });
     state.watches = state.watches.slice(0, 30);
@@ -101,7 +101,7 @@ export class RepoGuardian {
     const w = (state.watches || []).find((x) => x.id === id);
     if (!w) return `⚠️ Watch not found: ${id}`;
     w.status = 'stopped';
-    w.stoppedAt = nowIso();
+    w.stoppedAt = getIsoTimestamp();
     this._writeState(state);
     return `🛑 Stopped Repo Guardian watch: \`${id}\``;
   }
