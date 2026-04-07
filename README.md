@@ -23,6 +23,7 @@ Inspired by Devin, ClawBot can plan, execute, debug, and complete real multi-ste
 | 🛡️ Repo Guardian mode | Detects failing checks, dependency risk, flaky files + fix plan |
 | 🚢 Goal→Shipping mode | Converts business goals into milestones, backlog, PR sequence |
 | 🧪 Autonomous QA mode | Bug reproduction plans, root-cause hints, QA checks |
+| ☁️ Cloudflare Worker edge API | Health/status + operator mode guidance + risk triage endpoint |
 | 🔒 Command safety | Blocks dangerous shell commands |
 | 📊 Logging | Timestamped log files per day |
 
@@ -92,6 +93,18 @@ ollama serve
 npm start
 ```
 
+### 7. (Optional) Deploy edge API to Cloudflare Worker
+
+```bash
+# upload a new version (same command used by Cloudflare build logs)
+npm run cf:upload
+
+# or deploy directly
+npm run cf:deploy
+```
+
+The Worker config lives in `/home/runner/work/ClawBot/ClawBot/wrangler.jsonc` and entry point is `/home/runner/work/ClawBot/ClawBot/cloudflare/worker.js`.
+
 ---
 
 ## Telegram Commands
@@ -135,6 +148,26 @@ You can also just **type your task directly** without a command prefix.
 /ship launch landing page + auth + analytics
 
 /qa checkout fails with 500 when promo code is empty
+```
+
+### Cloudflare Worker endpoints
+
+```bash
+GET  /health
+GET  /features
+GET  /operator/mode?goal=launch+landing+page+auth+analytics
+POST /operator/triage
+```
+
+`POST /operator/triage` accepts JSON:
+
+```json
+{
+  "failingChecks": 2,
+  "criticalDeps": 1,
+  "highDeps": 3,
+  "flakyFiles": 4
+}
 ```
 
 ---
