@@ -1,0 +1,5 @@
+{
+  "name": "clawbot-worker",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2026-04-07"
+}

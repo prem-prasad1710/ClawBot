@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "install-browsers": "npx playwright install chromium"
+    "install-browsers": "npx playwright install chromium",
+    "cf:upload": "npx wrangler versions upload",
+    "cf:deploy": "npx wrangler deploy"
   },
   "dependencies": {
     "axios": "^1.7.2",

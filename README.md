@@ -20,6 +20,10 @@ Inspired by Devin, ClawBot can plan, execute, debug, and complete real multi-ste
 | 🧩 Multi-step planning | Structured plan generated before execution |
 | 🔁 Error recovery | Catches failures and self-corrects |
 | 🗃️ Long-term memory | Tasks, history, and projects persisted locally |
+| 🛡️ Repo Guardian mode | Detects failing checks, dependency risk, flaky files + fix plan |
+| 🚢 Goal→Shipping mode | Converts business goals into milestones, backlog, PR sequence |
+| 🧪 Autonomous QA mode | Bug reproduction plans, root-cause hints, QA checks |
+| ☁️ Cloudflare Worker edge API | Health/status + operator mode guidance + risk triage endpoint |
 | 🔒 Command safety | Blocks dangerous shell commands |
 | 📊 Logging | Timestamped log files per day |
 
@@ -89,6 +93,18 @@ ollama serve
 npm start
 ```
 
+### 7. (Optional) Deploy edge API to Cloudflare Worker
+
+```bash
+# upload a new version (same command used by Cloudflare build logs)
+npm run cf:upload
+
+# or deploy directly
+npm run cf:deploy
+```
+
+The Worker config lives in `wrangler.jsonc` and entry point is `cloudflare/worker.js`.
+
 ---
 
 ## Telegram Commands
@@ -103,6 +119,9 @@ npm start
 | `/models` | List all locally available Ollama models |
 | `/workspace` | Show the workspace directory path |
 | `/clear` | Clear conversation context |
+| `/guardian [scan|status|watch|stop <id>|plan] [path]` | Repo Guardian health watchdog |
+| `/ship <business goal>` | Goal→Shipping plan generator |
+| `/qa <bug report>` | Autonomous QA bug lab |
 | `/help` | Show all commands |
 
 You can also just **type your task directly** without a command prefix.
@@ -123,6 +142,32 @@ You can also just **type your task directly** without a command prefix.
 /task fix the TypeScript errors in my project
 
 /task build a SaaS dashboard with authentication and a dark mode
+
+/guardian scan /Users/you/project
+
+/ship launch landing page + auth + analytics
+
+/qa checkout fails with 500 when promo code is empty
+```
+
+### Cloudflare Worker endpoints
+
+```bash
+GET  /health
+GET  /features
+GET  /operator/mode?goal=launch+landing+page+auth+analytics
+POST /operator/triage
+```
+
+`POST /operator/triage` accepts JSON:
+
+```json
+{
+  "failingChecks": 2,
+  "criticalDeps": 1,
+  "highDeps": 3,
+  "flakyFiles": 4
+}
 ```
 
 ---
@@ -142,7 +187,10 @@ clawbot/
 │   ├── filesystem.js      # File read/write + project context
 │   ├── browser.js         # Playwright browser automation
 │   ├── search.js          # DuckDuckGo web search
-│   └── github.js          # Git + GitHub API
+│   ├── github.js          # Git + GitHub API
+│   ├── repoguardian.js    # Repo health watchdog + risk scanner
+│   ├── goalshipping.js    # Goal → milestones/backlog/PR/release planning
+│   └── autonomousqa.js    # Bug reproduction + QA check workflows
 ├── telegram/
 │   └── bot.js             # Telegram bot interface
 ├── utils/

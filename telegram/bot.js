@@ -32,6 +32,9 @@ import { DevTools } from '../tools/devtools.js';
 import { Automation } from '../tools/automation.js';
 import { FileWatcher } from '../tools/filewatcher.js';
 import { ChessGame } from '../tools/chess.js';
+import { RepoGuardian } from '../tools/repoguardian.js';
+import { GoalShipping } from '../tools/goalshipping.js';
+import { AutonomousQA } from '../tools/autonomousqa.js';
 import { config } from '../config/config.js';
 import { logger } from '../utils/logger.js';
 
@@ -155,6 +158,9 @@ export class ClawBotTelegram {
     this.automation   = new Automation();
     this.fileWatcher  = new FileWatcher();
     this.chessGame    = new ChessGame();
+    this.repoGuardian = new RepoGuardian();
+    this.goalShipping = new GoalShipping();
+    this.autonomousQA = new AutonomousQA();
     this.activeLoops = new Map(); // chatId → AgentLoop
     this._registerHandlers();
     logger.info('[Telegram] Bot started and polling.');
@@ -221,6 +227,9 @@ export class ClawBotTelegram {
     bot.onText(/\/open(?:\s+(.+))/, (msg, match) => this._handleOpenApp(msg, match[1].trim()));
     bot.onText(/\/volume(?:\s+(.*))?/, (msg, match) => this._handleVolume(msg, (match[1] || '').trim()));
     bot.onText(/\/darkmode(?:\s+(.*))?/, (msg, match) => this._handleDarkMode(msg, (match[1] || '').trim()));
+    bot.onText(/\/guardian(?:\s+(.*))?/, (msg, match) => this._handleGuardian(msg, (match[1] || '').trim()));
+    bot.onText(/\/ship(?:\s+(.*))?/, (msg, match) => this._handleShipping(msg, (match[1] || '').trim()));
+    bot.onText(/\/qa(?:\s+(.*))?/, (msg, match) => this._handleQA(msg, (match[1] || '').trim()));
     bot.onText(/\/chess(?:\s+(.*))?/, (msg, match) => this._handleChessCommand(msg, (match[1] || '').trim()));
     bot.onText(/\/resign/, (msg) => this._handleChessResign(msg));
     bot.onText(/\/board/, (msg) => this._handleChessBoard(msg));
@@ -397,6 +406,11 @@ export class ClawBotTelegram {
       ``,
       `*💾 Disk / Files:*`,
       `\`/disk [path]\` – Disk usage overview`,
+      ``,
+      `*🛡️ Operator Modes:*`,
+      `\`/guardian [scan|status|watch|stop <id>|plan] [path]\` – Repo Guardian health + risk mode`,
+      `\`/ship <business goal>\` – Goal→Shipping milestones, backlog, PR and release plan`,
+      `\`/qa <bug report>\` – Autonomous QA reproduction + root-cause + patch strategy`,
       ``,
       `*🛠️ Dev Tools:*`,
       `\`/uuid\` – Generate a UUID`,
@@ -1021,6 +1035,53 @@ export class ClawBotTelegram {
       }
     }
 
+    // ── Repo Guardian / Goal→Shipping / QA modes ───────────────────────────
+    if (/(repo guardian|guard my repo|scan repo health|repository health)/i.test(tl)) {
+      logger.info('[Bot] Fast dispatch → Repo Guardian scan');
+      const stop = this._startTyping(chatId);
+      try {
+        const result = await this.repoGuardian.execute({ operation: 'scan', path: config.agent.workspaceDir });
+        await this._send(chatId, result);
+        return result;
+      } catch (err) {
+        const msg = `❌ Repo Guardian error: ${err.message}`;
+        await this._send(chatId, msg);
+        return msg;
+      } finally {
+        stop();
+      }
+    }
+    if (/(goal to shipping|ship this goal|shipping plan|milestones and backlog)/i.test(tl)) {
+      logger.info('[Bot] Fast dispatch → Goal→Shipping');
+      const stop = this._startTyping(chatId);
+      try {
+        const result = await this.goalShipping.execute({ operation: 'plan', goal: t });
+        await this._send(chatId, result);
+        return result;
+      } catch (err) {
+        const msg = `❌ Goal→Shipping error: ${err.message}`;
+        await this._send(chatId, msg);
+        return msg;
+      } finally {
+        stop();
+      }
+    }
+    if (/(bug reproduction|reproduce bug|autonomous qa|qa this bug)/i.test(tl)) {
+      logger.info('[Bot] Fast dispatch → Autonomous QA');
+      const stop = this._startTyping(chatId);
+      try {
+        const result = await this.autonomousQA.execute({ operation: 'analyze', report: t });
+        await this._send(chatId, result);
+        return result;
+      } catch (err) {
+        const msg = `❌ Autonomous QA error: ${err.message}`;
+        await this._send(chatId, msg);
+        return msg;
+      } finally {
+        stop();
+      }
+    }
+
     return null; // nothing matched — let normal routing handle it
   }
 
@@ -1043,7 +1104,7 @@ export class ClawBotTelegram {
 
     // Identity — who built / made / created you
     if (/^(who are you|what are you|what'?s your name|your name)/.test(t)) {
-      return `🤖 I'm *ClawBot* — your personal JARVIS-style AI assistant built by *Prem*.\n\nI can:\n• Check weather, crypto prices & world clocks\n• Set reminders & calendar events\n• Control your Mac (volume, dark mode, apps)\n• Run code & terminal commands\n• Browse the web & check emails\n• Generate QR codes, track habits, run Pomodoro timers\n\nJust type anything — I'll figure out what you need, ${name}!`;
+      return `🤖 I'm *ClawBot* — your personal JARVIS-style AI assistant built by *Prem*.\n\nI can:\n• Check weather, crypto prices & world clocks\n• Set reminders & calendar events\n• Control your Mac (volume, dark mode, apps)\n• Run code & terminal commands\n• Browse the web & check emails\n• Generate QR codes, track habits, run Pomodoro timers\n• Run Repo Guardian, Goal→Shipping, and Autonomous QA modes\n\nJust type anything — I'll figure out what you need, ${name}!`;
     }
     if (/^(who (built|made|created|developed) you|who('?s| is) your (creator|developer|author|maker))/.test(t)) {
       return `🤖 I was built by *Prem* — your personal AI assistant running locally on your Mac. I'm powered by Ollama with a locally-hosted LLM.`;
@@ -1051,7 +1112,7 @@ export class ClawBotTelegram {
 
     // Capabilities
     if (/^(what can you do|what are your (capabilities|features|skills|powers))$/.test(t)) {
-      return `Here's what I can do, ${name}! Type \`/help\` for the full command list, or just ask me naturally:\n\n🌦 Weather • 💰 Crypto & stocks • 🌍 World clocks\n🍅 Pomodoro • ✅ Habits • 📷 QR codes • 🔊 TTS\n📅 Calendar • ⏰ Reminders • 📧 Email\n💻 Run code • 🔍 Web search • 🖥️ Mac automation\n🛠️ Dev tools (UUID, hash, base64…) • 💾 Disk analysis`;
+      return `Here's what I can do, ${name}! Type \`/help\` for the full command list, or just ask me naturally:\n\n🌦 Weather • 💰 Crypto & stocks • 🌍 World clocks\n🍅 Pomodoro • ✅ Habits • 📷 QR codes • 🔊 TTS\n📅 Calendar • ⏰ Reminders • 📧 Email\n💻 Run code • 🔍 Web search • 🖥️ Mac automation\n🛠️ Dev tools (UUID, hash, base64…) • 💾 Disk analysis\n🛡️ Repo Guardian • 🚢 Goal→Shipping • 🧪 Autonomous QA`;
     }
 
     // Gratitude / acknowledgement — no need to bother Ollama
@@ -1796,6 +1857,89 @@ export class ClawBotTelegram {
       await this._send(chatId, result);
     } catch (err) {
       await this._send(chatId, `❌ Dark mode error: ${err.message}`);
+    } finally {
+      stop();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Standout operator modes
+  // ─────────────────────────────────────────────────────────────────────────
+  async _handleGuardian(msg, text) {
+    const chatId = this._chatId(msg);
+    if (!this._isAuthorized(msg)) return;
+    const stop = this._startTyping(chatId);
+    try {
+      const raw = (text || '').trim();
+      const [first, ...rest] = raw.split(/\s+/).filter(Boolean);
+      const op = (first || 'scan').toLowerCase();
+      const isKnownOp = ['scan', 'status', 'watch', 'stop', 'plan'].includes(op);
+      const operation = isKnownOp ? op : 'scan';
+      const arg = isKnownOp ? rest.join(' ') : raw;
+
+      const params = { operation };
+      if (operation === 'stop') params.id = arg;
+      if ((operation === 'scan' || operation === 'watch') && arg) params.path = arg;
+      const result = await this.repoGuardian.execute(params);
+      await this._send(chatId, result);
+    } catch (err) {
+      await this._send(chatId, `❌ Repo Guardian error: ${err.message}`);
+    } finally {
+      stop();
+    }
+  }
+
+  async _handleShipping(msg, text) {
+    const chatId = this._chatId(msg);
+    if (!this._isAuthorized(msg)) return;
+    const stop = this._startTyping(chatId);
+    try {
+      const input = (text || '').trim();
+      if (!input) {
+        await this._send(chatId, 'Usage: `/ship <business goal>`\nExample: `/ship launch landing page + auth + analytics`');
+        return;
+      }
+      const statusMatch = input.match(/^status(?:\s+(\S+))?/i);
+      const daily = /^daily$/i.test(input);
+      let result;
+      if (statusMatch) {
+        result = await this.goalShipping.execute({ operation: 'status', id: statusMatch[1] || '' });
+      } else if (daily) {
+        result = await this.goalShipping.execute({ operation: 'daily' });
+      } else {
+        result = await this.goalShipping.execute({ operation: 'plan', goal: input });
+      }
+      await this._send(chatId, result);
+    } catch (err) {
+      await this._send(chatId, `❌ Goal→Shipping error: ${err.message}`);
+    } finally {
+      stop();
+    }
+  }
+
+  async _handleQA(msg, text) {
+    const chatId = this._chatId(msg);
+    if (!this._isAuthorized(msg)) return;
+    const stop = this._startTyping(chatId);
+    try {
+      const input = (text || '').trim();
+      if (!input) {
+        await this._send(chatId, 'Usage: `/qa <bug report>` or `/qa checks [path]`');
+        return;
+      }
+      let result;
+      if (/^checks(?:\s+(.+))?/i.test(input)) {
+        const m = input.match(/^checks(?:\s+(.+))?/i);
+        result = await this.autonomousQA.execute({ operation: 'run_checks', path: (m?.[1] || '').trim() || config.agent.workspaceDir });
+      } else if (/^status(?:\s+(\S+))?/i.test(input)) {
+        const m = input.match(/^status(?:\s+(\S+))?/i);
+        result = await this.autonomousQA.execute({ operation: 'status', id: m?.[1] || '' });
+      } else {
+        result = await this.autonomousQA.execute({ operation: 'analyze', report: input });
+      }
+      await this._send(chatId, result);
+    } catch (err) {
+      await this._send(chatId, `❌ Autonomous QA error: ${err.message}`);
     } finally {
       stop();
     }
